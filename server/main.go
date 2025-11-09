@@ -18,8 +18,8 @@ func main() {
 	global.USER_TOKENS = make(map[uint]string)
 
 	r := gin.Default()
-	rgBase := router.RouterBase(r, "goblog")
-	router.RouterGroupUser(rgBase)
+	router.RouterBase(r, "goblog")
+	// router.RouterGroupUser(rgBase)
 
 	r.Run(":8888")
 }

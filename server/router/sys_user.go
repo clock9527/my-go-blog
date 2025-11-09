@@ -7,6 +7,7 @@ import (
 )
 
 func RouterGroupUser(router *gin.RouterGroup) {
+	// 用户路由组
 	rgUser := router.Group("user")
 	{
 		rgUser.POST("login", sys.Login)  // 登录
