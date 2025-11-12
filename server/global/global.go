@@ -25,6 +25,7 @@ var (
 	// BlackCache              local_cache.Cache
 	lock        sync.RWMutex
 	USER_TOKENS map[uint]string
+	JWT_KEY     []byte
 )
 
 // GetGlobalDBByDBName 通过名称获取db list中的db

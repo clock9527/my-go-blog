@@ -61,7 +61,7 @@ func Login(c *gin.Context) {
 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString([]byte(storedUser.Username + "" + storedUser.Email))
+	tokenString, err := token.SignedString(global.JWT_KEY)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -69,6 +69,6 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token": tokenString,
 	})
-	fmt.Println(storedUser.ID, " : ", tokenString)
-	global.USER_TOKENS[storedUser.ID] = tokenString
+	// fmt.Println(storedUser.ID, " : ", tokenString)
+	// global.USER_TOKENS[storedUser.ID] = tokenString
 }

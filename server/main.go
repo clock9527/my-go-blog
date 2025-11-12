@@ -8,15 +8,15 @@ import (
 	"my-go-blog/server/router"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func main() {
 	sinit.SetDB()
 	fmt.Println(global.GVA_DB)
 	global.GVA_DB.AutoMigrate(&comm.User{}, &comm.Post{}, &comm.Comment{})
-
 	global.USER_TOKENS = make(map[uint]string)
-
+	global.JWT_KEY = []byte(uuid.New().String())
 	r := gin.Default()
 	router.RouterBase(r, "goblog")
 	// router.RouterGroupUser(rgBase)
