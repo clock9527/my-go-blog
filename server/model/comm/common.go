@@ -19,9 +19,9 @@ type Post struct {
 
 type Comment struct {
 	gorm.Model
-	Content string `gorm:"not null;json:content"`
-	UserID  uint   `json:"userid"`
+	Content string `gorm:"not null"`
+	UserID  uint
 	User    User
-	PostID  uint `json:"postid"`
+	PostID  uint
 	Post    Post
 }

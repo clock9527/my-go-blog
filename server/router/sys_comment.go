@@ -9,9 +9,9 @@ import (
 
 func RouterGroupComment(rg *gin.RouterGroup) {
 	// 评论路由组
-	rgComment := rg.Group("comment")
+	rgComment := rg.Group("comment").Use(middleware.JWTAuth())
 	{
-		rgComment.GET("/getComments/:id", sys.GetCommentsByPostID)                      // 评论查看
-		rgComment.PUT("/createCmment/:id", sys.CreateComment).Use(middleware.JWTAuth()) // 评论修改
+		rgComment.GET("/list/:id", sys.GetCommentsByPostID) // 评论查看
+		rgComment.PUT("/create/:id", sys.CreateComment)     // 评论创建
 	}
 }

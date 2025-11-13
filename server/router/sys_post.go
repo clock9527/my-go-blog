@@ -21,7 +21,7 @@ func RouterGroupPost(rg *gin.RouterGroup) {
 		rgPostModify.Use(middleware.JWTAuth()) // 添加JWT认证中间件
 		{
 			rgPostModify.POST("/create", sys.CreatePost)       // 创建
-			rgPostModify.POST("/update", sys.UpdatePost)       // 修改
+			rgPostModify.POST("/update/:id", sys.UpdatePost)   // 修改
 			rgPostModify.DELETE("/delete/:id", sys.DeletePost) // 删除
 		}
 	}

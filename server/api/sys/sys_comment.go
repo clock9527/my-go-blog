@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,7 +18,7 @@ func GetCommentsByPostID(c *gin.Context) {
 			"error": "文章ID参数无效",
 		})
 		return
-	} else if err = global.GVA_DB.Find(&comments, "post_id=?", postID).Error; err != nil { //获取评论
+	} else if err = global.GVA_DB.Debug().Find(&comments, "post_id=?", postID).Error; err != nil { //获取评论
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "评论获取失败",
 		})
@@ -31,14 +32,25 @@ func GetCommentsByPostID(c *gin.Context) {
 
 // 创建评论
 func CreateComment(c *gin.Context) {
-	// 获取评论内容
 	var comment comm.Comment
+	// 通过认证 token 获取 user id
+	if mapToken, exists := c.Get("mapToken"); exists {
+		userID := (*(mapToken.(*jwt.MapClaims)))["id"]
+		comment.UserID = uint(userID.(float64)) // 这里为什么是float64？
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "无效认证",
+		})
+		return
+	}
+	// 获取评论内容
 	if err := c.ShouldBindBodyWithJSON(&comment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "评论内容参数无效",
 		})
 		return
 	}
+
 	// 获取文章ID
 	if postID, err := strconv.Atoi(c.Param("id")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

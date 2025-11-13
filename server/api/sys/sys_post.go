@@ -4,6 +4,7 @@ import (
 	"my-go-blog/server/global"
 	"my-go-blog/server/model/comm"
 	"net/http"
+	"strconv"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -38,13 +39,6 @@ func GetList(c *gin.Context) {
 func CreatePost(c *gin.Context) {
 
 	var post comm.Post
-
-	if err := c.ShouldBindBodyWithJSON(&post); err != nil {
-		c.JSON(http.StatusFound, gin.H{
-			"error": "请确认输入参数",
-		})
-	}
-
 	// 通过认证 token 获取 user id
 	if mapToken, exists := c.Get("mapToken"); exists {
 		userID := (*(mapToken.(*jwt.MapClaims)))["id"]
@@ -53,25 +47,48 @@ func CreatePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "无效认证",
 		})
+		return
 	}
-
+	// post 参数
+	if err := c.ShouldBindBodyWithJSON(&post); err != nil {
+		c.JSON(http.StatusFound, gin.H{
+			"error": "请确认输入参数",
+		})
+	}
+	// 创建文章
 	if err := global.GVA_DB.Create(&post).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "文章创建失败"})
 	}
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "创建成功",
+	})
 
 }
 
 // 修改文章
 func UpdatePost(c *gin.Context) {
-	// 通过认证token获取用户ID
 	var post comm.Post
+
 	if mapToken, exists := c.Get("mapToken"); exists {
-		userID := (*(mapToken.(*jwt.MapClaims)))["id"]
-		post.UserID = uint(userID.(float64)) // 这里为什么是float64？
+		// 获取 post id
+		id := c.Param("id")
+		postID, _ := strconv.Atoi(id)
+
+		// 通过认证token获取userID
+		tUserID := uint(((*(mapToken.(*jwt.MapClaims)))["id"]).(float64)) // 这里为什么是float64？
+
+		// 验证user和post是否匹配
+		if b := checkUserPostMatch(tUserID, postID, &post); !b {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "无权限修改该文章",
+			})
+			return
+		}
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "无效认证",
 		})
+		return
 	}
 	// 获取文章参数
 	if err := c.ShouldBindBodyWithJSON(&post); err != nil {
@@ -80,6 +97,7 @@ func UpdatePost(c *gin.Context) {
 		})
 		return
 	}
+
 	// 执行Update
 	if _, err := gorm.G[comm.Post](global.GVA_DB.Debug()).Where("id = ? And user_id = ?", post.ID, post.UserID).Update(c, "content", post.Content); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -88,6 +106,10 @@ func UpdatePost(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "修改成功",
+	})
+
 }
 
 // 删除文章
@@ -95,20 +117,47 @@ func DeletePost(c *gin.Context) {
 	// 通过认证token获取 user id
 	var post comm.Post
 	if mapToken, exists := c.Get("mapToken"); exists {
-		userID := (*(mapToken.(*jwt.MapClaims)))["id"]
-		post.UserID = uint(userID.(float64)) // 这里为什么是float64？
+		// 获取 post id
+		id := c.Param("id")
+		postID, _ := strconv.Atoi(id)
+
+		// 通过认证token获取userID
+		tUserID := uint(((*(mapToken.(*jwt.MapClaims)))["id"]).(float64)) // 这里为什么是float64？
+
+		// 验证user和post是否匹配
+		if b := checkUserPostMatch(tUserID, postID, &post); !b {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "无权限删除该文章",
+			})
+			return
+		}
+
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "无效认证",
 		})
 	}
-	// 处理文章ID 并删除
-	postID := c.Param("id")
-	if err := global.GVA_DB.Debug().Where("user_id = ? And id = ?", post.UserID, postID).Delete(&post).Error; err != nil {
+	// 执行删除
+	d := global.GVA_DB.Debug().Where("user_id = ? And id = ?", post.UserID, post.ID).Delete(&post)
+	if d.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "文章删除失败"})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"msg": "删除成功",
 	})
+}
+
+// 验证user和post是否匹配，并装载post
+func checkUserPostMatch(uid uint, pid int, post *comm.Post) bool {
+	var userID uint
+	// 通过post id 获取 userid，用于比较
+	global.GVA_DB.Model(&post).Where("id = ?", pid).Select("user_id").First(&userID)
+	if uid == userID {
+		post.ID = uint(pid)
+		post.UserID = uid
+		return true
+	}
+	return false
 }
